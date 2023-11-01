@@ -1,7 +1,7 @@
 import asyncio
 import time
 from random import randint
-
+from multiprocessing import Pool
 import httpx
 import requests
 from flask import Flask
@@ -12,24 +12,25 @@ img_list_count = 10
 
 
 @app.route('/')
-def hello_world():  # put application's code here
+def hello_world():
     return 'Hello World!'
 
 
-def get_xkcd_image():
+def get_xkcd_image_parallel(_):
     random = randint(0, 300)
     response = requests.get(f'https://xkcd.com/{random}/info.0.json')
     return response.json()['img']
 
 
-def get_multiple_images(number):
-    return [get_xkcd_image() for _ in range(number)]
+def get_multiple_images_parallel():
+    with Pool() as pool:
+        results = pool.map(get_xkcd_image_parallel, range(img_list_count)) 
+    return results
 
-
-@app.get('/comic')
-def hello():
+@app.route('/comic')
+def hello_parallel():
     start = time.perf_counter()
-    urls = get_multiple_images(img_list_count)
+    urls = get_multiple_images_parallel()
     end = time.perf_counter()
 
     markup = f"Time taken: {end-start}<br><br>"
